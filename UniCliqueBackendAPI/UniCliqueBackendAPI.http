@@ -1,0 +1,6 @@
+@UniCliqueBackendAPI_HostAddress = http://localhost:5142
+
+GET {{UniCliqueBackendAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

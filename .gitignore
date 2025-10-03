@@ -1,0 +1,71 @@
+############################
+# Build ve Cache Dosyaları #
+############################
+bin/
+obj/
+out/
+Debug/
+Release/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+
+############################
+# Kullanıcıya Özel Dosyalar #
+############################
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+############################
+# IDE Dosyaları #
+############################
+.vscode/
+.idea/
+*.userprefs
+*.vs/
+
+############################
+# NuGet Paketleri #
+############################
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+
+############################
+# EF Core Migration Çöpler #
+############################
+*.dbmdl
+*.bak
+*.sql
+*.sqlite
+*.db
+
+############################
+# Ortam / Config Dosyaları #
+############################
+.env
+.env.*
+appsettings.Local.json
+appsettings.Development.json
+
+############################
+# Test Sonuçları #
+############################
+TestResult*/
+build/
+TestResults/
+coverage/
+
+############################
+# MacOS / Sistem Dosyaları #
+############################
+.DS_Store
+Thumbs.db
