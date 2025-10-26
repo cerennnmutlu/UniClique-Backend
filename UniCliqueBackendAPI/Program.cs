@@ -1,4 +1,12 @@
+using Microsoft.EntityFrameworkCore;
+using UniCliqueBackend.Persistence.Contexts;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// DbContext (PostgreSQL)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
