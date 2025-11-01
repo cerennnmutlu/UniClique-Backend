@@ -39,7 +39,7 @@ namespace UniCliqueBackend.Domain.Entities
 
         public bool IsBanned { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation Properties
         public ICollection<UserConsent> UserConsents { get; set; }

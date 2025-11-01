@@ -19,6 +19,6 @@ namespace UniCliqueBackend.Domain.Entities
         [Required]
         public bool IsAccepted { get; set; }
 
-        public DateTime AcceptedAt { get; set; } = DateTime.Now;
+        public DateTime AcceptedAt { get; set; } = DateTime.UtcNow;
     }
 }

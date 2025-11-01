@@ -36,7 +36,9 @@ namespace UniCliqueBackend.Persistence.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("Expiration")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP + interval '30 days'");
 
                     b.Property<bool>("IsRevoked")
                         .ValueGeneratedOnAdd()
@@ -58,6 +60,26 @@ namespace UniCliqueBackend.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("refresh_tokens", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2025, 11, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9270),
+                            Expiration = new DateTime(2025, 12, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9270),
+                            IsRevoked = false,
+                            Token = "sample_refresh_token_admin",
+                            UserId = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2025, 11, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9270),
+                            Expiration = new DateTime(2025, 12, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9270),
+                            IsRevoked = false,
+                            Token = "sample_refresh_token_user",
+                            UserId = 3
+                        });
                 });
 
             modelBuilder.Entity("UniCliqueBackend.Domain.Entities.User", b =>
@@ -97,7 +119,8 @@ namespace UniCliqueBackend.Persistence.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
@@ -123,6 +146,50 @@ namespace UniCliqueBackend.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("users", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            BirthDate = new DateTime(1995, 5, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2025, 11, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9170),
+                            Email = "admin@uniclique.com",
+                            FullName = "Admin User",
+                            IsActive = true,
+                            IsBanned = false,
+                            PasswordHash = "admin123",
+                            PhoneNumber = "5555555555",
+                            Role = 2,
+                            Username = "admin"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            BirthDate = new DateTime(1990, 4, 14, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2025, 11, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9180),
+                            Email = "business@uniclique.com",
+                            FullName = "Business Owner",
+                            IsActive = true,
+                            IsBanned = false,
+                            PasswordHash = "biz123",
+                            PhoneNumber = "5551112233",
+                            Role = 1,
+                            Username = "business1"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            BirthDate = new DateTime(2000, 1, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedAt = new DateTime(2025, 11, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9180),
+                            Email = "user@uniclique.com",
+                            FullName = "Regular User",
+                            IsActive = true,
+                            IsBanned = false,
+                            PasswordHash = "user123",
+                            PhoneNumber = "5552223344",
+                            Role = 0,
+                            Username = "user1"
+                        });
                 });
 
             modelBuilder.Entity("UniCliqueBackend.Domain.Entities.UserConsent", b =>
@@ -149,9 +216,44 @@ namespace UniCliqueBackend.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "ConsentType")
+                        .IsUnique();
 
                     b.ToTable("user_consents", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AcceptedAt = new DateTime(2025, 11, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9220),
+                            ConsentType = 0,
+                            IsAccepted = true,
+                            UserId = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            AcceptedAt = new DateTime(2025, 11, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9220),
+                            ConsentType = 1,
+                            IsAccepted = true,
+                            UserId = 1
+                        },
+                        new
+                        {
+                            Id = 3,
+                            AcceptedAt = new DateTime(2025, 11, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9220),
+                            ConsentType = 0,
+                            IsAccepted = true,
+                            UserId = 2
+                        },
+                        new
+                        {
+                            Id = 4,
+                            AcceptedAt = new DateTime(2025, 11, 1, 13, 27, 24, 902, DateTimeKind.Utc).AddTicks(9220),
+                            ConsentType = 2,
+                            IsAccepted = true,
+                            UserId = 3
+                        });
                 });
 
             modelBuilder.Entity("UniCliqueBackend.Domain.Entities.RefreshToken", b =>
