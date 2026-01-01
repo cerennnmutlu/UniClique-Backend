@@ -1,40 +1,182 @@
 using Microsoft.EntityFrameworkCore;
 using UniCliqueBackend.Persistence.Contexts;
-using UniCliqueBackend.Persistence.Seed;
+using UniCliqueBackend.Persistence;
+using UniCliqueBackend.Application;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using UniCliqueBackend.Application.Options;
+using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using UniCliqueBackend.Application.DTOs.Common;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-
+// --------------------
+// DATABASE
+// --------------------
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("PostgreSql"),
-        b => b.MigrationsAssembly("UniCliqueBackend.Persistence")
-    );
+    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSql"));
 });
 
+// --------------------
+// LAYER REGISTRATIONS
+// --------------------
+builder.Services.AddApplication();
+builder.Services.AddPersistence();
 
-
+// --------------------
+// VALIDATION
+// --------------------
 builder.Services.AddControllers();
+
+builder.Services
+    .AddFluentValidationAutoValidation()
+    .AddFluentValidationClientsideAdapters();
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "UniClique API", Version = "v1" });
+    var securityScheme = new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Description = "Header değeri: Bearer {token}",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Authorization" }
+    };
+    c.AddSecurityDefinition("Authorization", securityScheme);
+    var securityRequirement = new OpenApiSecurityRequirement
+    {
+        { securityScheme, Array.Empty<string>() }
+    };
+    c.AddSecurityRequirement(securityRequirement);
+});
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false;
+        var issuer = builder.Configuration["Jwt:Issuer"];
+        var audience = builder.Configuration["Jwt:Audience"];
+        var secret = builder.Configuration["Jwt:SecretKey"];
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = issuer,
+            ValidAudience = audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret!)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.Configure<EmailPolicyOptions>(builder.Configuration.GetSection("EmailPolicy"));
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errorsList = context.ModelState
+            .Where(ms => ms.Value!.Errors.Count > 0)
+            .SelectMany(kvp => kvp.Value!.Errors.Select(err => new
+            {
+                field = kvp.Key,
+                code = "validation",
+                message = err.ErrorMessage
+            }))
+            .ToList();
+
+        var payload = new ApiMessageDto
+        {
+            Message = "Doğrulama hatası"
+        };
+        return new BadRequestObjectResult(payload);
+    };
+});
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// --------------------
+// MIDDLEWARE
+// --------------------
+if (app.Environment.IsDevelopment())
 {
-    var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-    if (env.IsDevelopment())
-    {
-        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await AppDbSeeder.SeedAsync(dbContext);
-    }
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var feature = context.Features.Get<IExceptionHandlerFeature>();
+        var ex = feature?.Error;
+
+        var statusCode = 500;
+        var code = "error.unhandled";
+        var message = "Beklenmeyen bir hata oluştu.";
+
+        var msg = ex?.Message ?? "";
+        if (!string.IsNullOrEmpty(msg))
+        {
+            if (msg.Contains("Invalid credentials.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 401; code = "auth.invalid_credentials"; message = "Kimlik bilgileri geçersiz.";
+            }
+            else if (msg.Contains("Account is not active.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 403; code = "auth.account_inactive"; message = "Hesap aktif değil.";
+            }
+            else if (msg.Contains("Invalid refresh token.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 401; code = "token.invalid"; message = "Yenileme tokenı geçersiz.";
+            }
+            else if (msg.Contains("Refresh token revoked.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 401; code = "token.revoked"; message = "Yenileme tokenı iptal edildi.";
+            }
+            else if (msg.Contains("Refresh token expired.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 401; code = "token.expired"; message = "Yenileme tokenı süresi doldu.";
+            }
+            else if (msg.Contains("User not found.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 404; code = "user.not_found"; message = "Kullanıcı bulunamadı.";
+            }
+            else if (msg.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 409; code = "user.already_exists"; message = "Bu e-posta veya kullanıcı adı kullanılıyor.";
+            }
+            else if (msg.Contains("Phone already exists", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 409; code = "user.phone_exists"; message = "Telefon numarası zaten kayıtlı.";
+            }
+            else if (msg.Contains("Email is required for first-time external login.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 400; code = "external_login.email_required"; message = "İlk dış giriş için e-posta zorunludur.";
+            }
+        }
+
+        var payload = new ApiMessageDto
+        {
+            Message = message
+        };
+
+        context.Response.StatusCode = statusCode;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(payload);
+    });
+});
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
@@ -42,4 +184,3 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
-

@@ -11,8 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniCliqueBackend.Persistenc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniCliqueBackendAPI", "..\UniCliqueBackendAPI\UniCliqueBackendAPI.csproj", "{238FC64D-F871-4B46-A04A-4E17AFBA4537}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UniCliqueBackend.Infrastructure", "UniCliqueBackend.Infrastructure\UniCliqueBackend.Infrastructure.csproj", "{CA8BB6F7-9E5A-4DAF-97E7-56B23F89DE00}"
-EndProject
+
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,9 +37,6 @@ Global
 		{238FC64D-F871-4B46-A04A-4E17AFBA4537}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{238FC64D-F871-4B46-A04A-4E17AFBA4537}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{238FC64D-F871-4B46-A04A-4E17AFBA4537}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CA8BB6F7-9E5A-4DAF-97E7-56B23F89DE00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CA8BB6F7-9E5A-4DAF-97E7-56B23F89DE00}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CA8BB6F7-9E5A-4DAF-97E7-56B23F89DE00}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CA8BB6F7-9E5A-4DAF-97E7-56B23F89DE00}.Release|Any CPU.Build.0 = Release|Any CPU
+
 	EndGlobalSection
 EndGlobal
