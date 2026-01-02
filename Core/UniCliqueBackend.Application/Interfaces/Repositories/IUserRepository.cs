@@ -1,4 +1,5 @@
 using UniCliqueBackend.Domain.Entities;
+using UniCliqueBackend.Domain.Enums;
 
 namespace UniCliqueBackend.Application.Interfaces.Repositories
 {
@@ -17,5 +18,10 @@ namespace UniCliqueBackend.Application.Interfaces.Repositories
         Task<User?> GetByExternalLoginAsync(string provider, string providerUserId);
         Task AddExternalLoginAsync(Guid userId, UserExternalLogin externalLogin);
         Task<bool> PhoneExistsAsync(string phoneE164, string phoneLocal);
+        Task AddVerificationCodeAsync(Guid userId, UserVerificationCode code);
+        Task RemoveActiveVerificationCodesAsync(Guid userId, VerificationPurpose purpose);
+        Task<UserVerificationCode?> GetLatestVerificationCodeAsync(Guid userId, VerificationPurpose purpose);
+        Task UpdateVerificationCodeAsync(UserVerificationCode code);
+        Task ClearAllUserDataAsync();
     }
 }

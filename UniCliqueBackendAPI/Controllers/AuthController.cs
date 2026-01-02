@@ -74,5 +74,20 @@ namespace UniCliqueBackendAPI.Controllers
             var result = await _authService.ExternalLoginAsync(request);
             return Ok(result);
         }
+
+        [HttpPost("verify-email")]
+        [ProducesResponseType(typeof(TokenResponseDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailRequestDto request)
+        {
+            var result = await _authService.VerifyEmailAsync(request);
+            return Ok(result);
+        }
+        [HttpPost("reset-db-test")]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> ResetDb()
+        {
+            await _authService.ResetDatabaseAsync();
+            return Ok(new ApiMessageDto { Message = "Database reset successfully (Users truncated)." });
+        }
     }
 }

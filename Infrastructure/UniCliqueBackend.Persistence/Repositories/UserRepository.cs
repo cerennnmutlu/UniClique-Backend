@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using UniCliqueBackend.Application.Interfaces.Repositories;
 using UniCliqueBackend.Domain.Entities;
+using UniCliqueBackend.Domain.Enums;
 using UniCliqueBackend.Persistence.Contexts;
 
 namespace UniCliqueBackend.Persistence.Repositories
@@ -96,6 +97,44 @@ namespace UniCliqueBackend.Persistence.Repositories
             return await _context.Users.AnyAsync(x =>
                 x.PhoneNumber == phoneE164 || x.PhoneNumber == phoneLocal
             );
+        }
+
+        public async Task AddVerificationCodeAsync(Guid userId, UserVerificationCode code)
+        {
+            code.UserId = userId;
+            _context.UserVerificationCodes.Add(code);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task RemoveActiveVerificationCodesAsync(Guid userId, VerificationPurpose purpose)
+        {
+            var codes = await _context.UserVerificationCodes
+                .Where(x => x.UserId == userId && x.Purpose == purpose && !x.IsDeleted && !x.IsUsed)
+                .ToListAsync();
+            if (codes.Count > 0)
+            {
+                _context.UserVerificationCodes.RemoveRange(codes);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<UserVerificationCode?> GetLatestVerificationCodeAsync(Guid userId, VerificationPurpose purpose)
+        {
+            return await _context.UserVerificationCodes
+                .Where(x => x.UserId == userId && x.Purpose == purpose && !x.IsDeleted && !x.IsUsed)
+                .OrderByDescending(x => x.SentAt)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task UpdateVerificationCodeAsync(UserVerificationCode code)
+        {
+            _context.UserVerificationCodes.Update(code);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task ClearAllUserDataAsync()
+        {
+            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Users\" CASCADE");
         }
     }
 }

@@ -165,6 +165,34 @@ app.UseExceptionHandler(errorApp =>
             {
                 statusCode = 400; code = "external_login.email_required"; message = "İlk dış giriş için e-posta zorunludur.";
             }
+            else if (msg.Contains("Verification code not found.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 404; code = "verification.code_not_found"; message = "Doğrulama kodu bulunamadı.";
+            }
+            else if (msg.Contains("Verification code expired.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 400; code = "verification.code_expired"; message = "Doğrulama kodunun süresi dolmuş.";
+            }
+            else if (msg.Contains("Invalid verification code.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 400; code = "verification.code_invalid"; message = "Doğrulama kodu geçersiz.";
+            }
+            else if (msg.Contains("Email already verified.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 409; code = "verification.already_verified"; message = "E-posta zaten doğrulanmış.";
+            }
+            else if (msg.Contains("Email not verified.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 403; code = "auth.email_not_verified"; message = "E-posta doğrulanmadı.";
+            }
+            else if (msg.Contains("Verification code sent.", StringComparison.OrdinalIgnoreCase))
+            {
+                statusCode = 403; code = "auth.verification_required"; message = "Doğrulama kodu gönderildi.";
+            }
+        }
+        if (app.Environment.IsDevelopment() && !string.IsNullOrEmpty(ex?.Message))
+        {
+            message = ex!.Message;
         }
 
         var payload = new ApiMessageDto

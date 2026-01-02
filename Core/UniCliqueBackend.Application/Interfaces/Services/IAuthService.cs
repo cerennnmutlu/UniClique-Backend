@@ -12,5 +12,7 @@ namespace UniCliqueBackend.Application.Interfaces.Services
 
         Task LogoutAsync(Guid userId, string refreshToken);
         Task<TokenResponseDto> ExternalLoginAsync(ExternalLoginRequestDto request);
+        Task<TokenResponseDto> VerifyEmailAsync(VerifyEmailRequestDto request);
+        Task ResetDatabaseAsync();
     }
 }

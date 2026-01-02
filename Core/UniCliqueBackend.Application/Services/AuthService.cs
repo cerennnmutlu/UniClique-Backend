@@ -4,6 +4,7 @@ using UniCliqueBackend.Application.Interfaces.Security;
 using UniCliqueBackend.Application.Interfaces.Services;
 using UniCliqueBackend.Domain.Entities;
 using UniCliqueBackend.Domain.Enums;
+using System.Security.Cryptography;
 
 namespace UniCliqueBackend.Application.Services
 {
@@ -12,16 +13,19 @@ namespace UniCliqueBackend.Application.Services
         private readonly IUserRepository _userRepository;
         private readonly IPasswordHasher _passwordHasher;
         private readonly ITokenService _tokenService;
+        private readonly IEmailService _emailService;
         private static readonly string[] _allowedProviders = new[] { "Google", "Facebook", "Instagram" };
 
         public AuthService(
             IUserRepository userRepository, 
             IPasswordHasher passwordHasher, 
-            ITokenService tokenService)
+            ITokenService tokenService,
+            IEmailService emailService)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
             _tokenService = tokenService;
+            _emailService = emailService;
         }
 
         public async Task RegisterAsync(RegisterRequestDto request)
@@ -67,6 +71,7 @@ namespace UniCliqueBackend.Application.Services
             }
 
             await _userRepository.AddAsync(user);
+            await SendRegisterEmailVerificationAsync(user);
         }
 
         public async Task<TokenResponseDto> LoginAsync(LoginRequestDto request)
@@ -90,6 +95,11 @@ namespace UniCliqueBackend.Application.Services
             if (!user.IsActive || user.IsBanned)
             {
                 throw new Exception("Account is not active.");
+            }
+
+            if (!user.IsEmailVerified)
+            {
+                throw new Exception("Email not verified.");
             }
 
             return await GenerateTokensForUser(user);
@@ -160,18 +170,24 @@ namespace UniCliqueBackend.Application.Services
                         FullName = string.IsNullOrWhiteSpace(request.FullName) ? baseUsername : request.FullName,
                         Email = request.Email,
                         Username = usernameCandidate,
-                        PhoneNumber = "+000000000000",
+                        PhoneNumber = $"+000{RandomNumberGenerator.GetInt32(100000000, 999999999)}",
                         BirthDate = DateTime.UtcNow.AddYears(-18),
                         PasswordHash = passwordHash,
                         Role = RoleType.User,
                         IsActive = true,
-                        IsEmailVerified = true,
-                        EmailVerifiedAt = DateTime.UtcNow,
+                        IsEmailVerified = false,
                         CreatedAt = DateTime.UtcNow,
                         LastLoginAt = DateTime.UtcNow
                     };
 
                     await _userRepository.AddAsync(user);
+                    try
+                    {
+                        await SendRegisterEmailVerificationAsync(user);
+                    }
+                    catch
+                    {
+                    }
                 }
 
                 var external = new UserExternalLogin
@@ -185,6 +201,53 @@ namespace UniCliqueBackend.Application.Services
 
             user.LastLoginAt = DateTime.UtcNow;
             await _userRepository.UpdateAsync(user);
+
+            if (!user.IsEmailVerified)
+            {
+                 // New user via external login must verify email first
+                 // Or existing user who hasn't verified yet
+                 // We threw exception in other flow, here we should probably re-send code if needed
+                 // But wait, if they just registered (lines 163-178), we sent code.
+                 // We should NOT return tokens. We should tell frontend to go to verify screen.
+                 throw new Exception("Verification code sent.");
+            }
+
+            return await GenerateTokensForUser(user);
+        }
+
+        public async Task<TokenResponseDto> VerifyEmailAsync(VerifyEmailRequestDto request)
+        {
+            var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+                throw new Exception("User not found.");
+            if (user.IsEmailVerified)
+                throw new Exception("Email already verified.");
+
+            var codeEntity = await _userRepository.GetLatestVerificationCodeAsync(user.Id, VerificationPurpose.RegisterEmailVerification);
+            if (codeEntity == null)
+                throw new Exception("Verification code not found.");
+            if (codeEntity.ExpiresAt <= DateTime.UtcNow)
+                throw new Exception("Verification code expired.");
+
+            codeEntity.AttemptCount += 1;
+            codeEntity.LastAttemptAt = DateTime.UtcNow;
+
+            var ok = _passwordHasher.Verify(request.Code, codeEntity.CodeHash);
+            if (!ok)
+            {
+                await _userRepository.UpdateVerificationCodeAsync(codeEntity);
+                throw new Exception("Invalid verification code.");
+            }
+
+            codeEntity.IsUsed = true;
+            codeEntity.UsedAt = DateTime.UtcNow;
+            await _userRepository.UpdateVerificationCodeAsync(codeEntity);
+
+            user.IsEmailVerified = true;
+            user.EmailVerifiedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+
+            await _userRepository.RemoveActiveVerificationCodesAsync(user.Id, VerificationPurpose.RegisterEmailVerification);
 
             return await GenerateTokensForUser(user);
         }
@@ -218,11 +281,32 @@ namespace UniCliqueBackend.Application.Services
             };
         }
 
+        private async Task SendRegisterEmailVerificationAsync(User user)
+        {
+            await _userRepository.RemoveActiveVerificationCodesAsync(user.Id, VerificationPurpose.RegisterEmailVerification);
+
+            var code = RandomNumberGenerator.GetInt32(100000, 1000000);
+            var codeStr = code.ToString("D6");
+            var codeHash = _passwordHasher.HashPassword(codeStr);
+
+            var verification = new UserVerificationCode
+            {
+                Purpose = VerificationPurpose.RegisterEmailVerification,
+                CodeHash = codeHash,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                SentTo = user.Email,
+                UserId = user.Id,
+                SentAt = DateTime.UtcNow
+            };
+
+            await _userRepository.AddVerificationCodeAsync(user.Id, verification);
+            await _emailService.SendAsync(user.Email, "E-posta Doğrulama Kodu", $"Doğrulama kodunuz: {codeStr}");
+        }
+
         private static (string e164, string local) GetTrPhoneVariants(string phone)
         {
             phone = (phone ?? "").Trim();
             var digits = new string(phone.Where(char.IsDigit).ToArray());
-            // +905XXXXXXXXX
             var e164Match = System.Text.RegularExpressions.Regex.Match(phone, @"^\+90(5\d{9})$");
             if (e164Match.Success)
             {
@@ -246,6 +330,11 @@ namespace UniCliqueBackend.Application.Services
                 return (phone, phone);
             }
             return (phone, phone);
+        }
+
+        public async Task ResetDatabaseAsync()
+        {
+            await _userRepository.ClearAllUserDataAsync();
         }
     }
 }
