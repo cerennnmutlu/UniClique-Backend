@@ -14,6 +14,11 @@ namespace UniCliqueBackend.Persistence
         public static IServiceCollection AddPersistence(this IServiceCollection services)
         {
             services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<IAdminRepository, AdminRepository>();
+            services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+            services.AddScoped<IEventRepository, EventRepository>();
+            services.AddScoped<IPostRepository, PostRepository>();
+            services.AddScoped<IBusinessRepository, BusinessRepository>();
             services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
             services.AddScoped<ITokenService, JwtTokenService>();
             services.AddScoped<IEmailService, SmtpEmailService>();

@@ -76,6 +76,21 @@ namespace UniCliqueBackend.Persistence.Repositories
                 .AnyAsync(x => x.Email == email || x.Username == username);
         }
 
+        public async Task<IEnumerable<User>> SearchUsersAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<User>();
+
+            query = query.Trim().ToLower();
+
+            return await _context.Users
+                .Where(u => !u.IsDeleted && !u.IsBanned &&
+                            (u.Username.ToLower().Contains(query) || 
+                             u.FullName.ToLower().Contains(query)))
+                .Take(20) // Limit results
+                .ToListAsync();
+        }
+
         public async Task<User?> GetByExternalLoginAsync(string provider, string providerUserId)
         {
             var login = await _context.UserExternalLogins
@@ -134,7 +149,43 @@ namespace UniCliqueBackend.Persistence.Repositories
 
         public async Task ClearAllUserDataAsync()
         {
-            await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Users\" CASCADE");
+            // PROPER HARD DELETE SEQUENCE FOR NON-ADMIN USERS
+            // We use raw SQL to bypass Soft Delete interception in SaveChangesAsync
+            // and to handle dependencies manually where Cascade might not be set.
+            
+            var sql = @"
+                -- 1. Dependent User Data
+                DELETE FROM ""UserRefreshTokens"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2);
+                DELETE FROM ""UserVerificationCodes"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2);
+                DELETE FROM ""UserConsents"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2);
+                DELETE FROM ""UserExternalLogins"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2);
+                DELETE FROM ""BusinessRequests"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2);
+
+                -- 2. Friendships (If either party is a target user, delete the link)
+                DELETE FROM ""Friendships"" WHERE ""RequesterId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2) 
+                    OR ""AddresseeId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2);
+
+                -- 3. Posts (Delete posts made by target users)
+                DELETE FROM ""Posts"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2);
+
+                -- 4. Event Paticipation (Remove target users from events)
+                DELETE FROM ""EventParticipants"" WHERE ""UserId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2);
+
+                -- 5. Events (Events organized by target users)
+                -- 5.1 First delete Posts on these events (even if made by others/Admins)
+                DELETE FROM ""Posts"" WHERE ""EventId"" IN (SELECT ""Id"" FROM ""Events"" WHERE ""OwnerId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2));
+                
+                -- 5.2 Delete Participants of these events
+                DELETE FROM ""EventParticipants"" WHERE ""EventId"" IN (SELECT ""Id"" FROM ""Events"" WHERE ""OwnerId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2));
+                
+                -- 5.3 Delete the Events themselves
+                DELETE FROM ""Events"" WHERE ""OwnerId"" IN (SELECT ""Id"" FROM ""Users"" WHERE ""Role"" != 2);
+
+                -- 6. Finally, delete the Users
+                DELETE FROM ""Users"" WHERE ""Role"" != 2;
+            ";
+
+            await _context.Database.ExecuteSqlRawAsync(sql);
         }
     }
 }

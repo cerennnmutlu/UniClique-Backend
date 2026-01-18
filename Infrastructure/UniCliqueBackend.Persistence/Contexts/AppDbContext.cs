@@ -13,6 +13,12 @@ namespace UniCliqueBackend.Persistence.Contexts
         public DbSet<UserVerificationCode> UserVerificationCodes => Set<UserVerificationCode>();
         public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
         public DbSet<UserExternalLogin> UserExternalLogins => Set<UserExternalLogin>();
+        public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+        public DbSet<Friendship> Friendships => Set<Friendship>();
+        public DbSet<Event> Events => Set<Event>();
+        public DbSet<EventParticipant> EventParticipants => Set<EventParticipant>();
+        public DbSet<Post> Posts => Set<Post>();
+        public DbSet<BusinessRequest> BusinessRequests => Set<BusinessRequest>();
 
         // 🔹 Constructor
         public AppDbContext(DbContextOptions<AppDbContext> options)
@@ -29,6 +35,7 @@ namespace UniCliqueBackend.Persistence.Contexts
             modelBuilder.ApplyConfiguration(new UserVerificationCodeConfiguration());
             modelBuilder.ApplyConfiguration(new UserRefreshTokenConfiguration());
             modelBuilder.ApplyConfiguration(new UserExternalLoginConfiguration());
+            modelBuilder.ApplyConfiguration(new FriendshipConfiguration());
 
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {

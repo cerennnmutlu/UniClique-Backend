@@ -12,6 +12,11 @@ namespace UniCliqueBackend.Application
         {
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IFriendService, FriendService>();
+            services.AddScoped<IEventService, EventService>();
+            services.AddScoped<IPostService, PostService>();
+            services.AddScoped<IBusinessService, BusinessService>();
         }
     }
 }

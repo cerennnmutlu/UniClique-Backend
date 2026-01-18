@@ -11,6 +11,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using UniCliqueBackend.Application.DTOs.Common;
+using System.Security.Claims;
 
 
 
@@ -63,20 +64,22 @@ builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.MapInboundClaims = false;
+       
         var issuer = builder.Configuration["Jwt:Issuer"];
         var audience = builder.Configuration["Jwt:Audience"];
         var secret = builder.Configuration["Jwt:SecretKey"];
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ValidIssuer = issuer,
             ValidAudience = audience,
+
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret!)),
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero,
+            RoleClaimType = ClaimTypes.Role
         };
     });
 
@@ -113,6 +116,23 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+// --------------------
+// SEED DATABASE
+// --------------------
+using (var scope = app.Services.CreateScope())
+{
+    try 
+    {
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await UniCliqueBackend.Persistence.Seed.AppDbSeeder.SeedAsync(context);
+    }
+    catch (Exception ex)
+    {
+        // Simple logging or ignore for now, preventing crash if db not ready
+        Console.WriteLine($"Seeding failed: {ex.Message}");
+    }
 }
 
 app.UseExceptionHandler(errorApp =>

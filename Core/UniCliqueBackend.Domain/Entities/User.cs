@@ -27,11 +27,28 @@ namespace UniCliqueBackend.Domain.Entities
 
         public RoleType Role { get; set; } = RoleType.User;
 
+        // Profile Details
+        [MaxLength(200)]
+        public string? ProfilePhotoUrl { get; set; } // Profil fotoğrafı
+        
+        [MaxLength(100)]
+        public string? University { get; set; } // Üniversite
+        
+        [MaxLength(100)]
+        public string? Department { get; set; } // Bölüm
+
+        [MaxLength(500)]
+        public string? Bio { get; set; } // Biyografi
+
+        // Gamification
+        public int InteractionScore { get; set; } = 0; // Etkileşim puanı
+
         public bool IsEmailVerified { get; set; } = false;
         public DateTime? EmailVerifiedAt { get; set; }
 
         public bool IsActive { get; set; } = true;
         public bool IsBanned { get; set; } = false;
+        public bool IsDeleted { get; set; } = false; // Soft delete
 
         public DateTime? LastLoginAt { get; set; }
 
@@ -40,5 +57,13 @@ namespace UniCliqueBackend.Domain.Entities
         public ICollection<UserRefreshToken> RefreshTokens { get; set; } = new List<UserRefreshToken>();
         public ICollection<UserVerificationCode> VerificationCodes { get; set; } = new List<UserVerificationCode>();
         public ICollection<UserExternalLogin> ExternalLogins { get; set; } = new List<UserExternalLogin>();
+
+        // New Feature Navigations
+        public ICollection<Friendship> UseSentFriendRequests { get; set; } = new List<Friendship>();
+        public ICollection<Friendship> UserReceivedFriendRequests { get; set; } = new List<Friendship>();
+        public ICollection<Event> CreatedEvents { get; set; } = new List<Event>();
+        public ICollection<EventParticipant> JoinedEvents { get; set; } = new List<EventParticipant>();
+        public ICollection<Post> Posts { get; set; } = new List<Post>();
+        public ICollection<BusinessRequest> BusinessRequests { get; set; } = new List<BusinessRequest>();
     }
 }
