@@ -336,5 +336,15 @@ namespace UniCliqueBackend.Application.Services
         {
             await _userRepository.ClearAllUserDataAsync();
         }
+
+        public async Task<bool> DeleteUserByEmailAsync(string email)
+        {
+            var user = await _userRepository.GetByEmailAsync(email);
+            if (user == null) return false;
+            user.IsDeleted = true;
+            user.DeletedAt = DateTime.UtcNow;
+            await _userRepository.UpdateAsync(user);
+            return true;
+        }
     }
 }

@@ -14,5 +14,6 @@ namespace UniCliqueBackend.Application.Interfaces.Services
         Task<TokenResponseDto> ExternalLoginAsync(ExternalLoginRequestDto request);
         Task<TokenResponseDto> VerifyEmailAsync(VerifyEmailRequestDto request);
         Task ResetDatabaseAsync();
+        Task<bool> DeleteUserByEmailAsync(string email);
     }
 }

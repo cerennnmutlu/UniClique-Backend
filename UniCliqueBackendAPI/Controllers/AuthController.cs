@@ -89,5 +89,15 @@ namespace UniCliqueBackendAPI.Controllers
             await _authService.ResetDatabaseAsync();
             return Ok(new ApiMessageDto { Message = "Database reset successfully (Users truncated)." });
         }
+
+        [HttpDelete("test/delete-user-by-email")]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteUserByEmail([FromQuery] string email)
+        {
+            var ok = await _authService.DeleteUserByEmailAsync(email);
+            if (!ok) return NotFound(new ApiMessageDto { Message = "User not found" });
+            return Ok(new ApiMessageDto { Message = "User deleted" });
+        }
     }
 }
