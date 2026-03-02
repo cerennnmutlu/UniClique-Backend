@@ -25,7 +25,25 @@ namespace UniCliqueBackend.Persistence.Repositories
         public async Task AddAsync(User user)
         {
             _context.Users.Add(user);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+            {
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                if (!string.IsNullOrWhiteSpace(msg))
+                {
+                    var l = msg.ToLowerInvariant();
+                    if (l.Contains("ix_users_email") || l.Contains("users_email_key"))
+                        throw new Exception("User with this email or username already exists.");
+                    if (l.Contains("ix_users_username") || l.Contains("users_username_key"))
+                        throw new Exception("User with this email or username already exists.");
+                    if (l.Contains("ix_users_phonenumber") || l.Contains("users_phonenumber_key"))
+                        throw new Exception("Phone already exists.");
+                }
+                throw;
+            }
         }
 
         public async Task UpdateAsync(User user)
@@ -104,7 +122,24 @@ namespace UniCliqueBackend.Persistence.Repositories
         {
             externalLogin.UserId = userId;
             _context.UserExternalLogins.Add(externalLogin);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+            {
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                if (!string.IsNullOrWhiteSpace(msg))
+                {
+                    var l = msg.ToLowerInvariant();
+                    if (l.Contains("userexternallogins_provider_provideruserid_key")
+                        || l.Contains("ix_userexternallogins_provider_provideruserid"))
+                    {
+                        throw new Exception("External login already exists.");
+                    }
+                }
+                throw;
+            }
         }
 
         public async Task<bool> PhoneExistsAsync(string phoneE164, string phoneLocal)
