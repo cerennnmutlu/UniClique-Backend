@@ -55,6 +55,24 @@ namespace UniCliqueBackend.Persistence.Seed
                 AddConsents(context, cerenAdmin);
             }
 
+            if (!await context.Users.AnyAsync(u => u.Email == "test.user@uniclique.dev"))
+            {
+                var testUser = new User
+                {
+                    FullName = "Test User",
+                    Email = "test.user@uniclique.dev",
+                    Username = "testuser",
+                    PhoneNumber = "+905555555557",
+                    BirthDate = DateTime.SpecifyKind(new DateTime(2000, 6, 15), DateTimeKind.Utc),
+                    Role = RoleType.User,
+                    IsEmailVerified = true,
+                    EmailVerifiedAt = DateTime.UtcNow,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Test1234!")
+                };
+                context.Users.Add(testUser);
+                AddConsents(context, testUser);
+            }
+
             // ✅ Consentler (3’ü de kabul)
             await context.SaveChangesAsync();
         }
