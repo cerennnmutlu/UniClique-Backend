@@ -115,7 +115,7 @@ namespace UniCliqueBackendAPI.Controllers
         public async Task<IActionResult> ResetDb()
         {
             await _authService.ResetDatabaseAsync();
-            return Ok(new ApiMessageDto { Message = "Database reset successfully (Users truncated)." });
+            return Ok(new ApiMessageDto { Message = "Database reset successfully (All tables truncated)." });
         }
 
         [HttpDelete("test/delete-user-by-email")]

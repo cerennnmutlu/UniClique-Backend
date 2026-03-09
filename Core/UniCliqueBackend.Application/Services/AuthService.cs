@@ -223,13 +223,7 @@ namespace UniCliqueBackend.Application.Services
                     };
 
                     await _userRepository.AddAsync(user);
-                    try
-                    {
-                        await SendRegisterEmailVerificationAsync(user);
-                    }
-                    catch
-                    {
-                    }
+                    await SendRegisterEmailVerificationAsync(user);
                 }
 
                 var external = new UserExternalLogin
@@ -342,13 +336,7 @@ namespace UniCliqueBackend.Application.Services
             };
 
             await _userRepository.AddVerificationCodeAsync(user.Id, verification);
-            try
-            {
-                await _emailService.SendAsync(user.Email, "E-posta Doğrulama Kodu", $"Doğrulama kodunuz: {codeStr}");
-            }
-            catch
-            {
-            }
+            await _emailService.SendAsync(user.Email, "E-posta Doğrulama Kodu", $"Doğrulama kodunuz: {codeStr}");
         }
 
         private static (string e164, string local) GetTrPhoneVariants(string phone)
@@ -408,13 +396,7 @@ namespace UniCliqueBackend.Application.Services
             };
 
             await _userRepository.AddVerificationCodeAsync(user.Id, verification);
-            try
-            {
-                await _emailService.SendAsync(user.Email, "Şifre Sıfırlama Kodu", $"Şifre sıfırlama kodunuz: {codeStr}");
-            }
-            catch
-            {
-            }
+            await _emailService.SendAsync(user.Email, "Şifre Sıfırlama Kodu", $"Şifre sıfırlama kodunuz: {codeStr}");
         }
 
         public async Task VerifyPasswordResetCodeAsync(VerifyResetCodeRequestDto request)
