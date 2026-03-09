@@ -1,5 +1,4 @@
-version: "3.9"
-
+version: "3.8"
 services:
   uniclique-db:
     image: postgres:15
@@ -12,7 +11,7 @@ services:
       POSTGRES_PASSWORD: uniclique_pass
 
     ports:
-      - "5432:5432"
+      - "5434:5432"
 
     volumes:
       - uniclique_pgdata:/var/lib/postgresql/data
@@ -22,6 +21,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  uniclique-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: uniclique-api
+    restart: unless-stopped
+    depends_on:
+      uniclique-db:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__PostgreSql: "Host=uniclique-db;Port=5432;Database=uniclique_db;Username=uniclique_user;Password=uniclique_pass"
+      ASPNETCORE_ENVIRONMENT: "Development"
+    ports:
+      - "5142:8080"
 
 volumes:
   uniclique_pgdata:

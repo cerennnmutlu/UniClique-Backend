@@ -82,6 +82,34 @@ namespace UniCliqueBackendAPI.Controllers
             var result = await _authService.VerifyEmailAsync(request);
             return Ok(result);
         }
+
+        [HttpPost("forgot-password/start")]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> ForgotPasswordStart([FromBody] ForgotPasswordStartRequestDto request)
+        {
+            await _authService.ForgotPasswordStartAsync(request);
+            return Ok(new ApiMessageDto { Message = "Reset code sent if account exists." });
+        }
+
+        [HttpPost("forgot-password/verify")]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> VerifyResetCode([FromBody] VerifyResetCodeRequestDto request)
+        {
+            await _authService.VerifyPasswordResetCodeAsync(request);
+            return Ok(new ApiMessageDto { Message = "Code verified." });
+        }
+
+        [HttpPost("forgot-password/reset")]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordWithCodeRequestDto request)
+        {
+            await _authService.ResetPasswordWithCodeAsync(request);
+            return Ok(new ApiMessageDto { Message = "Password reset successful." });
+        }
         [HttpPost("reset-db-test")]
         [ProducesResponseType(typeof(ApiMessageDto), StatusCodes.Status200OK)]
         public async Task<IActionResult> ResetDb()

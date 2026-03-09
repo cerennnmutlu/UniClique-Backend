@@ -15,5 +15,8 @@ namespace UniCliqueBackend.Application.Interfaces.Services
         Task<TokenResponseDto> VerifyEmailAsync(VerifyEmailRequestDto request);
         Task ResetDatabaseAsync();
         Task<bool> DeleteUserByEmailAsync(string email);
+        Task ForgotPasswordStartAsync(ForgotPasswordStartRequestDto request);
+        Task VerifyPasswordResetCodeAsync(VerifyResetCodeRequestDto request);
+        Task ResetPasswordWithCodeAsync(ResetPasswordWithCodeRequestDto request);
     }
 }

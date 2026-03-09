@@ -56,6 +56,14 @@ namespace UniCliqueBackend.Persistence.Email
                 }
                 if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(portStr) || string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(from))
                 {
+                    if (env.Equals("Development", StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine("DEV EMAIL (no SMTP configured):");
+                        Console.WriteLine($"To: {to}");
+                        Console.WriteLine($"Subject: {subject}");
+                        Console.WriteLine($"Body: {body}");
+                        return;
+                    }
                     throw new InvalidOperationException("Email SMTP configuration is missing.");
                 }
             }

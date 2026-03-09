@@ -1,0 +1,23 @@
+.git/
+.vs/
+.vscode/
+
+# Build results
+[Bb]in/
+[Oo]bj/
+out/
+publish/
+
+# Log files
+*.log
+
+# Docker
+docker-compose.override.yml
+docker-compose.yml
+Dockerfile
+
+# macOS
+.DS_Store
+
+# database data
+uniclique_pgdata/

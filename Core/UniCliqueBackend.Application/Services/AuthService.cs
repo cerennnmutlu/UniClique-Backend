@@ -380,6 +380,97 @@ namespace UniCliqueBackend.Application.Services
             return (phone, phone);
         }
 
+        public async Task ForgotPasswordStartAsync(ForgotPasswordStartRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email))
+                throw new Exception("Email is required.");
+
+            var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+            {
+                return;
+            }
+
+            await _userRepository.RemoveActiveVerificationCodesAsync(user.Id, VerificationPurpose.ForgotPassword);
+
+            var code = RandomNumberGenerator.GetInt32(100000, 1000000);
+            var codeStr = code.ToString("D6");
+            var codeHash = _passwordHasher.HashPassword(codeStr);
+
+            var verification = new UserVerificationCode
+            {
+                Purpose = VerificationPurpose.ForgotPassword,
+                CodeHash = codeHash,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                SentTo = user.Email,
+                UserId = user.Id,
+                SentAt = DateTime.UtcNow
+            };
+
+            await _userRepository.AddVerificationCodeAsync(user.Id, verification);
+            try
+            {
+                await _emailService.SendAsync(user.Email, "Şifre Sıfırlama Kodu", $"Şifre sıfırlama kodunuz: {codeStr}");
+            }
+            catch
+            {
+            }
+        }
+
+        public async Task VerifyPasswordResetCodeAsync(VerifyResetCodeRequestDto request)
+        {
+            var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+                throw new Exception("Verification code not found.");
+
+            var codeEntity = await _userRepository.GetLatestVerificationCodeAsync(user.Id, VerificationPurpose.ForgotPassword);
+            if (codeEntity == null)
+                throw new Exception("Verification code not found.");
+            if (codeEntity.ExpiresAt <= DateTime.UtcNow)
+                throw new Exception("Verification code expired.");
+
+            codeEntity.AttemptCount += 1;
+            codeEntity.LastAttemptAt = DateTime.UtcNow;
+
+            var ok = _passwordHasher.Verify(request.Code, codeEntity.CodeHash);
+            if (!ok)
+            {
+                await _userRepository.UpdateVerificationCodeAsync(codeEntity);
+                throw new Exception("Invalid verification code.");
+            }
+        }
+
+        public async Task ResetPasswordWithCodeAsync(ResetPasswordWithCodeRequestDto request)
+        {
+            if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
+                throw new Exception("Password must be at least 8 characters.");
+            if (request.NewPassword != request.ConfirmNewPassword)
+                throw new Exception("Passwords do not match.");
+
+            var user = await _userRepository.GetByEmailAsync(request.Email);
+            if (user == null)
+                throw new Exception("User not found.");
+
+            var codeEntity = await _userRepository.GetLatestVerificationCodeAsync(user.Id, VerificationPurpose.ForgotPassword);
+            if (codeEntity == null)
+                throw new Exception("Verification code not found.");
+            if (codeEntity.ExpiresAt <= DateTime.UtcNow)
+                throw new Exception("Verification code expired.");
+
+            var ok = _passwordHasher.Verify(request.Code, codeEntity.CodeHash);
+            if (!ok)
+                throw new Exception("Invalid verification code.");
+
+            codeEntity.IsUsed = true;
+            codeEntity.UsedAt = DateTime.UtcNow;
+            await _userRepository.UpdateVerificationCodeAsync(codeEntity);
+
+            user.PasswordHash = _passwordHasher.HashPassword(request.NewPassword);
+            await _userRepository.UpdateAsync(user);
+
+            await _userRepository.RemoveActiveVerificationCodesAsync(user.Id, VerificationPurpose.ForgotPassword);
+        }
+
         public async Task ResetDatabaseAsync()
         {
             await _userRepository.ClearAllUserDataAsync();
